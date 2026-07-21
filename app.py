@@ -265,6 +265,10 @@ FOREIGN KEY (created_by) REFERENCES users(id)
         pass
     db.close()
 
+# Initialize database & ensure uploads dir (runs at import time for gunicorn/Render)
+init_db()
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # ============================================================
 # Audit Logging
 # ============================================================
