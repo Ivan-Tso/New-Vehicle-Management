@@ -1,0 +1,22 @@
+{
+  "name": "公务车管理系统",
+  "short_name": "公务车",
+  "description": "公务车辆行驶与费用管理",
+  "start_url": "/mobile",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1a73e8",
+  "background_color": "#f5f5f5",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

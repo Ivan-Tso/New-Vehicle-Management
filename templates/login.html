@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta name="theme-color" content="#0a0a0b">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+ <title>{{ t('login.title') }}</title>
+ <style>
+ * { margin: 0; padding: 0; box-sizing: border-box; }
+ body {
+ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+ background: #0a0a0b;
+ color: #e8e8ed;
+ min-height: 100vh;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ -webkit-font-smoothing: antialiased;
+ overflow: hidden;
+ }
+
+ /* Animated background gradient */
+ .bg-glow {
+ position: fixed;
+ inset: 0;
+ z-index: 0;
+ overflow: hidden;
+ }
+ .bg-glow::before {
+ content: '';
+ position: absolute;
+ width: 600px;
+ height: 600px;
+ top: -200px;
+ right: -100px;
+ background: radial-gradient(circle, rgba(94,106,210,0.15) 0%, transparent 70%);
+ animation: float1 8s ease-in-out infinite;
+ }
+ .bg-glow::after {
+ content: '';
+ position: absolute;
+ width: 500px;
+ height: 500px;
+ bottom: -150px;
+ left: -100px;
+ background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+ animation: float2 10s ease-in-out infinite;
+ }
+ @keyframes float1 {
+ 0%, 100% { transform: translate(0, 0); }
+ 50% { transform: translate(-40px, 30px); }
+ }
+ @keyframes float2 {
+ 0%, 100% { transform: translate(0, 0); }
+ 50% { transform: translate(30px, -40px); }
+ }
+
+ .login-container {
+ position: relative;
+ z-index: 1;
+ width: 100%;
+ max-width: 400px;
+ padding: 20px;
+ }
+
+ .login-card {
+ background: rgba(17,17,19,0.8);
+ backdrop-filter: blur(40px);
+ -webkit-backdrop-filter: blur(40px);
+ border: 1px solid rgba(255,255,255,0.06);
+ border-radius: 16px;
+ padding: 40px 32px;
+ }
+
+ .login-logo {
+ width: 56px;
+ height: 56px;
+ border-radius: 14px;
+ background: linear-gradient(135deg, #5e6ad2, #8b5cf6);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 28px;
+ margin: 0 auto 24px;
+ box-shadow: 0 0 30px rgba(94,106,210,0.2);
+ }
+
+ .login-title {
+ text-align: center;
+ font-size: 22px;
+ font-weight: 600;
+ letter-spacing: -0.02em;
+ margin-bottom: 4px;
+ }
+
+ .login-subtitle {
+ text-align: center;
+ font-size: 13px;
+ color: #555559;
+ margin-bottom: 32px;
+ }
+
+ .error-msg {
+ background: rgba(239,68,68,0.1);
+ border: 1px solid rgba(239,68,68,0.2);
+ color: #f87171;
+ padding: 12px 16px;
+ border-radius: 8px;
+ margin-bottom: 20px;
+ text-align: center;
+ font-size: 13px;
+ }
+
+ .form-label {
+ display: block;
+ font-size: 12px;
+ font-weight: 500;
+ color: #8b8b8f;
+ text-transform: uppercase;
+ letter-spacing: 0.05em;
+ margin-bottom: 8px;
+ }
+
+ .form-input {
+ width: 100%;
+ padding: 12px 14px;
+ border: 1px solid rgba(255,255,255,0.1);
+ border-radius: 8px;
+ font-size: 15px;
+ font-family: inherit;
+ background: rgba(10,10,11,0.6);
+ color: #e8e8ed;
+ transition: all 150ms ease;
+ outline: none;
+ }
+
+ .form-input:focus {
+ border-color: #5e6ad2;
+ box-shadow: 0 0 0 3px rgba(94,106,210,0.15), 0 0 20px rgba(94,106,210,0.06);
+ }
+
+ .form-input::placeholder { color: #3d3d42; }
+
+ .login-btn {
+ width: 100%;
+ padding: 12px;
+ margin-top: 24px;
+ background: #e8e8ed;
+ color: #0a0a0b;
+ border: none;
+ border-radius: 8px;
+ font-size: 14px;
+ font-weight: 600;
+ font-family: inherit;
+ cursor: pointer;
+ transition: all 150ms ease;
+ letter-spacing: 0.01em;
+ }
+
+ .login-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+ .login-btn:active { transform: translateY(0); }
+
+ .login-footer {
+ text-align: center;
+ margin-top: 24px;
+ font-size: 12px;
+ color: #555559;
+ }
+
+ .login-footer code {
+ background: rgba(255,255,255,0.06);
+ padding: 2px 6px;
+ border-radius: 4px;
+ font-size: 12px;
+ color: #8b8b8f;
+ }
+
+ /* Subtle grid pattern overlay */
+ .grid-pattern {
+ position: fixed;
+ inset: 0;
+ z-index: 0;
+ background-image:
+ linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+ linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+ background-size: 60px 60px;
+ mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+ -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+ }
+ </style>
+</head>
+<body>
+ <div class="bg-glow"></div>
+ <div class="grid-pattern"></div>
+
+ <div class="login-container">
+ <div class="login-card">
+ <div class="login-logo">🚗</div>
+ <h1 class="login-title">{{ t('login.title') }}</h1>
+ <p class="login-subtitle">{{ t('login.subtitle') }}</p>
+
+ {% if error %}
+ <div class="error-msg">{{ error }}</div>
+ {% endif %}
+
+ <form method="POST" action="/login">
+ <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <label class="form-label">{{ t('login.username') }}</label>
+ <input type="text" name="username" class="form-input"
+ placeholder="{{ t('login.username') }}" required autofocus>
+ 
+ <label class="form-label" style="margin-top:16px">{{ t('login.password') }}</label>
+ <input type="password" name="password" class="form-input"
+ placeholder="{{ t('login.password') }}" required>
+ 
+ <button type="submit" class="login-btn">{{ t('login.button') }}</button>
+ </form>
+
+ <p class="login-footer">
+ {% if lang == 'zh' %}
+ 管理员：admin / Admin@123 · 用户：user / User@123
+ {% else %}
+ Admin: admin / Admin@123 · User: user / User@123
+ {% endif %}
+ {% if lang == 'zh' %} · <a href="/set-lang/en" style="color:#8b8b8f">EN</a>{% else %} · <a href="/set-lang/zh" style="color:#8b8b8f">中文</a>{% endif %}
+ </p>
+ </div>
+ </div>
+</body>
+</html>

@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}{{ t('report.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>📈 {{ t('report.title') }}</h1>
+ <p>{{ t('report.subtitle') }}</p>
+</div>
+<div class="page-body">
+
+<div class="filter-bar">
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('report.period') }}</label>
+ <select id="period" onchange="applyFilter()">
+ <option value="monthly" {{ 'selected' if period=='monthly' }}>{{ t('report.monthly') }}</option>
+ <option value="quarterly" {{ 'selected' if period=='quarterly' }}>{{ t('report.quarterly') }}</option>
+ <option value="yearly" {{ 'selected' if period=='yearly' }}>{{ t('report.yearly') }}</option>
+ </select>
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('report.year') }}</label>
+ <select id="year" onchange="applyFilter()">
+ {% for y in year_list %}
+ <option value="{{ y }}" {{ 'selected' if year==y|string }}>{{ y }}{{ t('report.year_suffix') }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('report.vehicle') }}</label>
+ <select id="vehicle_id" onchange="applyFilter()">
+ <option value="">{{ t('report.all_vehicles') }}</option>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" {{ 'selected' if vehicle_id==v.id|string }}>{{ v.plate_number }}</option>
+ {% endfor %}
+ </select>
+ </div>
+</div>
+
+<!-- 费用分时段分析 -->
+<div class="card">
+ <div class="card-header">📊 {{ t('report.expense_by_period') }}</div>
+ {% if expense_by_period %}
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('report.period_label') }}</th><th>{{ t('report.record_count') }}</th><th>{{ t('report.total') }}</th><th>{{ t('extype.fuel') }}</th><th>{{ t('extype.maintenance') }}</th><th>{{ t('extype.insurance') }}</th><th>{{ t('extype.toll') }}</th><th>{{ t('extype.parking') }}</th><th>{{ t('extype.other') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in expense_by_period %}
+ <tr>
+ <td><strong>{{ r.period_label }}</strong></td>
+ <td>{{ r.record_count }}</td>
+ <td><strong>¥{{ "%.2f"|format(r.total) }}</strong></td>
+ <td>¥{{ "%.2f"|format(r.fuel) }}</td>
+ <td>¥{{ "%.2f"|format(r.maintenance) }}</td>
+ <td>¥{{ "%.2f"|format(r.insurance) }}</td>
+ <td>¥{{ "%.2f"|format(r.toll) }}</td>
+ <td>¥{{ "%.2f"|format(r.parking) }}</td>
+ <td>¥{{ "%.2f"|format(r.other) }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ <tfoot>
+ <tr style="background:var(--bg);font-weight:600">
+ <td>{{ t('report.total') }}</td>
+ <td>{{ expense_by_period|sum(attribute='record_count') }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='total')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='fuel')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='maintenance')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='insurance')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='toll')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='parking')) }}</td>
+ <td>¥{{ "%.2f"|format(expense_by_period|sum(attribute='other')) }}</td>
+ </tr>
+ </tfoot>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">{{ t('report.no_expense_data') }}</div>
+ {% endif %}
+</div>
+
+<!-- 费用柱状图 -->
+{% if expense_by_period %}
+<div class="card">
+ <div class="card-header">📊 {{ t('report.expense_trend') }}</div>
+ <div class="bar-chart">
+ {% set max_total = expense_by_period|map(attribute='total')|max|float %}
+ {% for r in expense_by_period %}
+ <div class="bar-group">
+ <div class="bar-value">¥{{ "%.0f"|format(r.total) }}</div>
+ <div class="bar" style="height:{{ (r.total / max_total * 160)|int if max_total > 0 else 0 }}px;background:var(--primary-light);"
+ title="{{ t('extype.fuel') }}: ¥{{ '%.0f'|format(r.fuel) }}&#10;{{ t('extype.maintenance') }}: ¥{{ '%.0f'|format(r.maintenance) }}&#10;{{ t('extype.insurance') }}: ¥{{ '%.0f'|format(r.insurance) }}&#10;{{ t('extype.toll') }}: ¥{{ '%.0f'|format(r.toll) }}&#10;{{ t('extype.parking') }}: ¥{{ '%.0f'|format(r.parking) }}&#10;{{ t('extype.other') }}: ¥{{ '%.0f'|format(r.other) }}"></div>
+ <div class="bar-label">{{ r.period_label }}</div>
+ </div>
+ {% endfor %}
+ </div>
+</div>
+{% endif %}
+
+<!-- 使用分时段分析 -->
+<div class="card">
+ <div class="card-header">🛣️ {{ t('report.usage_by_period') }}</div>
+ {% if usage_by_period %}
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('report.period_label') }}</th><th>{{ t('report.trip_count') }}</th><th>{{ t('report.total_distance') }}({{ selected_vehicle_unit or 'km' }})</th><th>{{ t('report.avg_distance') }}</th><th>{{ t('report.driver_count') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in usage_by_period %}
+ <tr>
+ <td><strong>{{ r.period_label }}</strong></td>
+ <td>{{ r.trip_count }}</td>
+ <td>{{ "%.1f"|format(r.total_distance) }}</td>
+ <td>{{ "%.1f"|format(r.avg_distance) }}</td>
+ <td>{{ r.driver_count }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">{{ t('report.no_usage_data') }}</div>
+ {% endif %}
+</div>
+
+<!-- 单车费用对比 -->
+<div class="card">
+ <div class="card-header">🚘 {{ t('report.vehicle_cost') }}</div>
+ {% if vehicle_costs %}
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('report.plate') }}</th><th>{{ t('report.brand_model') }}</th><th>{{ t('report.record_count') }}</th><th>{{ t('report.total') }}</th><th>{{ t('report.fuel_cost') }}</th><th>{{ t('report.maint_cost') }}</th><th>{{ t('report.current_mileage') }}</th><th>{{ t('report.cost_per_km') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in vehicle_costs %}
+ <tr>
+ <td><strong>{{ r.plate_number }}</strong></td>
+ <td>{{ r.brand_model }}</td>
+ <td>{{ r.record_count }}</td>
+ <td><strong>¥{{ "%.2f"|format(r.total_cost) }}</strong></td>
+ <td>¥{{ "%.2f"|format(r.fuel_cost) }}</td>
+ <td>¥{{ "%.2f"|format(r.maint_cost) }}</td>
+ <td>{{ "%.0f"|format(r.current_mileage) if r.current_mileage else '-' }} {{ r.mileage_unit or 'km' }}</td>
+ <td>
+ {% if r.current_mileage and r.current_mileage > 0 %}
+ ¥{{ "%.2f"|format(r.total_cost / r.current_mileage) }}
+ {% else %}-{% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">{{ t('common.no_data') }}</div>
+ {% endif %}
+</div>
+
+<!-- 燃油效率分析 -->
+<div class="card">
+ <div class="card-header">⛽ {{ t('report.fuel_efficiency') }}</div>
+ {% if fuel_efficiency %}
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('report.plate') }}</th><th>{{ t('report.brand_model') }}</th><th>{{ t('report.total_fuel_l') }}</th><th>{{ t('report.total_fuel_cost') }}</th><th>{{ t('report.avg_unit_price') }}</th><th>{{ t('report.total_distance') }}</th><th>{{ t('report.fuel_per_100km') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in fuel_efficiency %}
+ <tr>
+ <td><strong>{{ r.plate_number }}</strong></td>
+ <td>{{ r.brand_model }}</td>
+ <td>{{ "%.1f"|format(r.total_fuel) if r.total_fuel else '-' }}</td>
+ <td>¥{{ "%.2f"|format(r.total_fuel_cost) }}</td>
+ <td>¥{{ "%.2f"|format(r.avg_unit_price) if r.avg_unit_price else '-' }}</td>
+ <td>{{ "%.0f"|format(r.total_distance) if r.total_distance else '-' }}</td>
+ <td>
+ {% if r.total_fuel and r.total_distance and r.total_distance > 0 %}
+ {{ "%.1f"|format(r.total_fuel / r.total_distance * 100) }} L
+ {% else %}-{% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">{{ t('report.no_fuel_data') }}</div>
+ {% endif %}
+</div>
+
+<script>
+function applyFilter() {
+ const period = document.getElementById('period').value;
+ const year = document.getElementById('year').value;
+ const vid = document.getElementById('vehicle_id').value;
+ const params = new URLSearchParams();
+ params.set('period', period);
+ params.set('year', year);
+ if (vid) params.set('vehicle_id', vid);
+ window.location.href = '{{ url_for("reports") }}?' + params.toString();
+}
+</script>
+</div>
+
+{% endblock %}

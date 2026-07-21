@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'zh-CN' }}">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+ <meta name="theme-color" content="#0a0a0b">
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+ <title>{{ t('mobile.record_usage') }} - {{ t('site.brand') }}</title>
+ <style>
+ * { margin:0; padding:0; box-sizing:border-box; }
+ body {
+ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+ background: #0a0a0b; color: #e8e8ed;
+ min-height: 100vh; padding: 0 0 90px;
+ -webkit-font-smoothing: antialiased;
+ }
+
+ /* Top bar */
+ .top-bar {
+ background: #111113; border-bottom: 1px solid rgba(255,255,255,0.06);
+ padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+ position: sticky; top: 0; z-index: 10;
+ backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+ }
+ .top-bar a { color: #8b8b8f; text-decoration: none; font-size: 20px; transition: color 150ms; }
+ .top-bar a:hover { color: #e8e8ed; }
+ .top-bar h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+
+ /* Form */
+ form { padding: 20px 16px; }
+ .form-group { margin-bottom: 18px; }
+ .form-group label {
+ display: block; font-size: 12px; font-weight: 500;
+ color: #8b8b8f; text-transform: uppercase; letter-spacing: 0.04em;
+ margin-bottom: 8px;
+ }
+ .form-group input, .form-group select, .form-group textarea {
+ width: 100%; padding: 12px 14px;
+ border: 1px solid rgba(255,255,255,0.1);
+ border-radius: 8px; font-size: 16px; font-family: inherit;
+ background: #111113; color: #e8e8ed;
+ transition: all 150ms ease; outline: none;
+ -webkit-appearance: none;
+ }
+ .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+ border-color: #5e6ad2;
+ box-shadow: 0 0 0 2px rgba(94,106,210,0.15);
+ }
+ .form-group input::placeholder, .form-group textarea::placeholder { color: #3d3d42; }
+ .form-group textarea { height: 64px; resize: none; }
+ .form-group select {
+ background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b8b8f' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+ background-repeat: no-repeat; background-position: right 14px center;
+ padding-right: 36px;
+ }
+ .form-row { display: flex; gap: 10px; }
+ .form-row .form-group { flex: 1; }
+
+ /* Quick tags */
+ .section-label {
+ font-size: 11px; font-weight: 500; color: #555559;
+ text-transform: uppercase; letter-spacing: 0.05em;
+ margin: 8px 0 10px;
+ }
+ .quick-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+ .quick-tag {
+ padding: 8px 14px; border-radius: 9999px;
+ border: 1px solid rgba(255,255,255,0.1);
+ background: transparent; font-size: 13px; font-family: inherit;
+ cursor: pointer; color: #8b8b8f; transition: all 150ms;
+ }
+ .quick-tag.selected {
+ border-color: #5e6ad2; background: rgba(94,106,210,0.12);
+ color: #818cf8; font-weight: 500;
+ }
+
+ /* Submit */
+ .submit-btn {
+ width: 100%; padding: 14px; margin-top: 8px;
+ background: #e8e8ed; color: #0a0a0b;
+ border: none; border-radius: 10px;
+ font-size: 16px; font-weight: 600; font-family: inherit;
+ cursor: pointer; transition: all 150ms;
+ }
+ .submit-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+ /* Bottom nav */
+ .bottom-nav {
+ position: fixed; bottom: 0; left: 0; right: 0;
+ background: rgba(17,17,19,0.9); backdrop-filter: blur(20px);
+ -webkit-backdrop-filter: blur(20px);
+ border-top: 1px solid rgba(255,255,255,0.06);
+ display: flex; padding: 6px 0;
+ padding-bottom: env(safe-area-inset-bottom);
+ }
+ .bottom-nav a {
+ flex: 1; text-align: center; padding: 8px 0;
+ text-decoration: none; color: #555559; font-size: 10px;
+ transition: color 150ms;
+ }
+ .bottom-nav a.active { color: #5e6ad2; }
+ .bottom-nav a .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+ </style>
+</head>
+<body>
+ <div class="top-bar">
+ <a href="/mobile">←</a>
+ <h1>📋 {{ t('mobile.record_usage') }}</h1>
+ </div>
+
+ <form method="POST" action="/mobile/usage">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <div class="form-group">
+ <label>🚘 {{ t('mobile.vehicle') }}</label>
+ <select name="vehicle_id" id="vehicle_select" required>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" data-mileage-unit="{{ v.mileage_unit or 'km' }}">{{ v.plate_number }} {{ v.brand_model }}</option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label>📅 {{ t('mobile.date') }}</label>
+ <input type="date" name="usage_date" value="{{ today }}">
+ </div>
+ <div class="form-group">
+ <label>🌤 {{ t('mobile.weather') }}</label>
+ <select name="weather">
+ <option value="晴" selected>{{ t('mobile.weather_sunny') }}</option>
+ <option value="多云">{{ t('mobile.weather_cloudy') }}</option>
+ <option value="阴">{{ t('mobile.weather_overcast') }}</option>
+ <option value="小雨">{{ t('mobile.weather_light_rain') }}</option>
+ <option value="大雨">{{ t('mobile.weather_heavy_rain') }}</option>
+ <option value="雪">{{ t('mobile.weather_snow') }}</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label>👤 {{ t('mobile.driver') }}</label>
+ <input type="text" name="driver" required placeholder="{{ t('mobile.driver_name_ph') }}">
+ </div>
+ <div class="form-group">
+ </div>
+
+ <div class="form-group">
+ <label>📝 {{ t('mobile.trip_purpose') }}</label>
+ <div class="quick-tags" id="purpose-tags">
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_check') }}')">{{ t('mobile.purpose_check') }}</span>
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_meeting') }}')">{{ t('mobile.purpose_meeting') }}</span>
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_research') }}')">{{ t('mobile.purpose_research') }}</span>
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_official') }}')">{{ t('mobile.purpose_official') }}</span>
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_pickup') }}')">{{ t('mobile.purpose_pickup') }}</span>
+ <span class="quick-tag" onclick="fillPurpose(this,'{{ t('mobile.purpose_procurement') }}')">{{ t('mobile.purpose_procurement') }}</span>
+ </div>
+ <input type="text" name="purpose" id="purpose-input" required placeholder="{{ t('mobile.quick_tags_hint') }}">
+ </div>
+
+ <div class="form-group">
+ <label>📍 {{ t('mobile.destination') }}</label>
+ <input type="text" name="destination" placeholder="{{ t('mobile.destination_ph') }}">
+ </div>
+
+ <div class="section-label">{{ t('mobile.mileage') }}</div>
+ <div class="form-row">
+ <div class="form-group">
+ <label>{{ t('mobile.start_mileage') }}</label>
+ <input type="number" step="0.1" name="start_mileage" placeholder="{{ t('mobile.km_ph') }}" class="mu-ph">
+ </div>
+ <div class="form-group">
+ <label>{{ t('mobile.end_mileage') }}</label>
+ <input type="number" step="0.1" name="end_mileage" placeholder="{{ t('mobile.km_ph') }}" class="mu-ph">
+ </div>
+ </div>
+
+ <div class="form-row">
+ <div class="form-group">
+ <label>{{ t('mobile.start_time') }}</label>
+ <input type="time" name="start_time">
+ </div>
+ <div class="form-group">
+ <label>{{ t('mobile.end_time') }}</label>
+ <input type="time" name="end_time">
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label>📎 {{ t('expense.notes') }}</label>
+ <textarea name="notes" placeholder="{{ t('mobile.notes_optional') }}"></textarea>
+ </div>
+
+ <button type="submit" class="submit-btn">✅ {{ t('mobile.submit_usage') }}</button>
+ </form>
+
+ <div class="bottom-nav">
+ <a href="/mobile"><span class="nav-icon">🏠</span>{{ t('mobile.home') }}</a>
+ <a href="/mobile/usage" class="active"><span class="nav-icon">📋</span>{{ t('mobile.nav_usage') }}</a>
+ <a href="/mobile/expense"><span class="nav-icon">💰</span>{{ t('mobile.nav_expense') }}</a>
+ <a href="/dashboard"><span class="nav-icon">📊</span>{{ t('mobile.nav_manage') }}</a>
+ </div>
+
+ <script>
+ function fillPurpose(el, text) {
+ document.getElementById('purpose-input').value = text;
+ document.querySelectorAll('.quick-tag').forEach(t => t.classList.remove('selected'));
+ el.classList.add('selected');
+ }
+
+ // Dynamic mileage unit
+ const vehicleSel = document.getElementById('vehicle_select');
+ const muPhs = document.querySelectorAll('.mu-ph');
+ function updateMileageUnit() {
+     if (!vehicleSel) return;
+     const opt = vehicleSel.options[vehicleSel.selectedIndex];
+     const unit = opt ? (opt.dataset.mileageUnit || 'km') : 'km';
+     muPhs.forEach(el => el.placeholder = unit);
+ }
+ if (vehicleSel) {
+     vehicleSel.addEventListener('change', updateMileageUnit);
+     updateMileageUnit();
+ }
+ </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ t('usage.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>📋 {{ t('usage.title') }}</h1>
+ <p>{{ t('usage.subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="flex-between mb-2">
+ <span></span>
+ <div class="btn-group">
+ <a href="{{ url_for('usage_add') }}" class="btn btn-accent">+ {{ t('usage.add') }}</a>
+ <a href="{{ url_for('export_csv', table='usage_logs') }}" class="btn btn-outline">📥 {{ t('common.export_csv') }}</a>
+ </div>
+</div>
+
+<div class="filter-bar">
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('usage.vehicle') }}</label>
+ <select name="vehicle_id" onchange="applyFilter()">
+ <option value="">{{ t('usage.vehicle') }}</option>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" {{ 'selected' if vehicle_filter==v.id|string }}>{{ v.plate_number }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('usage.date') }}</label>
+ <input type="date" id="date_from" value="{{ date_from }}" onchange="applyFilter()">
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('usage.date') }}</label>
+ <input type="date" id="date_to" value="{{ date_to }}" onchange="applyFilter()">
+ </div>
+</div>
+
+{% if logs %}
+<div class="card">
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('usage.date') }}</th><th>{{ t('usage.vehicle') }}</th><th>{{ t('usage.driver') }}</th><th>{{ t('usage.purpose') }}</th><th>{{ t('usage.destination') }}</th><th>{{ t('usage.start_mileage') }}</th><th>{{ t('usage.end_mileage') }}</th><th>{{ t('usage.distance') }}</th><th>{{ t('common.actions') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in logs %}
+ <tr>
+ <td>{{ r.usage_date }}</td>
+ <td><strong>{{ r.plate_number }}</strong></td>
+ <td>{{ r.driver_name }}</td>
+ 
+ <td class="text-sm">{{ r.purpose[:20] }}{{ '...' if r.purpose|length > 20 }}</td>
+ <td>{{ r.destination or '-' }}</td>
+ <td>{{ "%.1f"|format(r.start_mileage) if r.start_mileage else '-' }} {{ r.mileage_unit or 'km' }}</td>
+ <td>{{ "%.1f"|format(r.end_mileage) if r.end_mileage else '-' }} {{ r.mileage_unit or 'km' }}</td>
+ <td><strong>{{ "%.1f"|format(r.distance) if r.distance else '-' }}</strong> {{ r.mileage_unit or 'km' }}</td>
+ <td>
+ {% if session.get('user_role') == 'admin' %}
+ <a href="{{ url_for('usage_edit', id=r.id) }}" class="btn btn-outline btn-sm">{{ t('common.edit') }}</a>
+ {% else %}
+ <span style="color:var(--fg-tertiary);font-size:12px">-</span>
+ {% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+ {% for p in range(1, total_pages+1) %}
+ {% if p == page %}
+ <span>{{ p }}</span>
+ {% else %}
+ <a href="?page={{ p }}&vehicle_id={{ vehicle_filter }}&date_from={{ date_from }}&date_to={{ date_to }}">{{ p }}</a>
+ {% endif %}
+ {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="card empty-state">
+ <div class="icon">📋</div>
+ <p>{{ t('usage.empty') }}</p>
+ <a href="{{ url_for('usage_add') }}" class="btn btn-accent mt-2">+ {{ t('usage.add') }}</a>
+</div>
+{% endif %}
+
+<script>
+function applyFilter() {
+ const vid = document.querySelector('[name=vehicle_id]').value;
+ const df = document.getElementById('date_from').value;
+ const dt = document.getElementById('date_to').value;
+ const params = new URLSearchParams();
+ if (vid) params.set('vehicle_id', vid);
+ if (df) params.set('date_from', df);
+ if (dt) params.set('date_to', dt);
+ window.location.href = '{{ url_for("usage_list") }}?' + params.toString();
+}
+</script>
+</div>
+
+{% endblock %}

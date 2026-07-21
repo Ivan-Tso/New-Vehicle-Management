@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ t('admin.users') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>👥 {{ t('admin.users') }}</h1>
+ <p>{{ t('admin.users_subtitle') }}</p>
+</div>
+
+<div class="page-body">
+ <div class="flex-between mb-2">
+  <span></span>
+  <a href="{{ url_for('admin_user_add') }}" class="btn btn-accent">+ {{ t('admin.add_user') }}</a>
+ </div>
+
+ {% if users %}
+ <div class="card">
+ <div class="table-wrap">
+ <table>
+ <thead>
+  <tr>
+    <th>{{ t('admin.username') }}</th>
+    <th>{{ t('admin.role') }}</th>
+    <th>{{ t('admin.created_at') }}</th>
+    <th>{{ t('admin.actions') }}</th>
+  </tr>
+ </thead>
+ <tbody>
+ {% for u in users %}
+ <tr>
+  <td>{{ u.username }}</td>
+  <td>
+   <span class="badge badge-{{ u.role }}">
+    {% if u.role == 'admin' %}{{ t('admin.role_admin') }}
+    {% else %}{{ t('admin.role_user') }}
+    {% endif %}
+   </span>
+  </td>
+  <td>{{ u.created_at or '-' }}</td>
+  <td>
+   <a href="{{ url_for('admin_user_edit', id=u.id) }}" class="btn btn-outline btn-sm">{{ t('common.edit') }}</a>
+   {% if u.id != session.get('user_id') %}
+   <form method="post" action="{{ url_for('admin_user_delete', id=u.id) }}" style="display:inline;" onsubmit="return confirm('{{ t('common.confirm_delete') }}');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-danger btn-sm">{{ t('common.delete') }}</button>
+   </form>
+   {% else %}
+   <small class="text-muted">{{ t('admin.cannot_delete_self') }}</small>
+   {% endif %}
+  </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ {% else %}
+ <div class="card empty-state">
+ <div class="icon">👥</div>
+ <p>{{ t('admin.users_empty') }}</p>
+ </div>
+ {% endif %}
+</div>
+
+{% endblock %}

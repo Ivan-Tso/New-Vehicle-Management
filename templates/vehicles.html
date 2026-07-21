@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ t('vehicles.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>🚘 {{ t('vehicles.title') }}</h1>
+ <p>{{ t('vehicles.subtitle') }}</p>
+</div>
+
+<div class="page-body">
+ <div class="flex-between mb-2">
+ <span></span>
+ <a href="{{ url_for('vehicle_add') }}" class="btn btn-accent">+ {{ t('vehicles.add') }}</a>
+ </div>
+
+ {% if vehicles %}
+ <div class="card">
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('vehicles.plate_number') }}</th><th>{{ t('vehicles.brand_model') }}</th><th>{{ t('vehicles.type') }}</th><th>{{ t('vehicles.purchase_date') }}</th><th>{{ t('vehicles.current_mileage') }}</th><th>{{ t('vehicles.status') }}</th><th>{{ t('common.actions') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for v in vehicles %}
+ <tr>
+ <td>{{ v.plate_number }}</td>
+ <td>{{ v.brand_model }}</td>
+ <td>{{ tt('vtype', v.vehicle_type) }}</td>
+ <td>{{ v.purchase_date or '-' }}</td>
+ <td>{{ "%.0f"|format(v.current_mileage) }} {{ v.mileage_unit or 'km' }}</td>
+ <td><span class="badge badge-{{ v.status }}">{{ tt('status', v.status) }}</span></td>
+ <td>
+ {% if session.get('user_role') == 'admin' %}
+ <a href="{{ url_for('vehicle_edit', id=v.id) }}" class="btn btn-outline btn-sm">{{ t('common.edit') }}</a>
+ {% else %}
+ <span style="color:var(--fg-tertiary);font-size:12px">-</span>
+ {% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ {% else %}
+ <div class="card empty-state">
+ <div class="icon">🚘</div>
+ <p>{{ t('vehicles.empty_hint') }}</p>
+ <a href="{{ url_for('vehicle_add') }}" class="btn btn-accent mt-2">+ {{ t('vehicles.add') }}</a>
+ </div>
+ {% endif %}
+</div>
+
+{% endblock %}

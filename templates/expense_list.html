@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ t('expense.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>💰 {{ t('expense.title') }}</h1>
+ <p>{{ t('expense.subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="flex-between mb-2">
+ <span></span>
+ <div class="btn-group">
+ <a href="{{ url_for('expense_add') }}" class="btn btn-accent">+ {{ t('expense.add') }}</a>
+ <a href="{{ url_for('export_csv', table='expense_logs') }}" class="btn btn-outline">📥 {{ t('common.export') }}</a>
+ </div>
+</div>
+
+<div class="filter-bar">
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('usage.vehicle') }}</label>
+ <select name="vehicle_id" onchange="applyFilter()">
+ <option value="">{{ t('report.all_vehicles') }}</option>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" {{ 'selected' if vehicle_filter==v.id|string }}>{{ v.plate_number }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('expense.type') }}</label>
+ <select name="expense_type" onchange="applyFilter()">
+ <option value="">{{ t('report.all_vehicles') }}</option>
+ <option value="fuel" {{ 'selected' if type_filter=='fuel' }}>{{ tt('extype','fuel') }}</option>
+ <option value="maintenance" {{ 'selected' if type_filter=='maintenance' }}>{{ tt('extype','maintenance') }}</option>
+ <option value="insurance" {{ 'selected' if type_filter=='insurance' }}>{{ tt('extype','insurance') }}</option>
+ <option value="toll" {{ 'selected' if type_filter=='toll' }}>{{ tt('extype','toll') }}</option>
+ <option value="parking" {{ 'selected' if type_filter=='parking' }}>{{ tt('extype','parking') }}</option>
+ <option value="other" {{ 'selected' if type_filter=='other' }}>{{ tt('extype','other') }}</option>
+ </select>
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('report.period_label') }}</label>
+ <input type="date" id="date_from" value="{{ date_from }}" onchange="applyFilter()">
+ </div>
+ <div class="form-group" style="margin-bottom:0">
+ <label>{{ t('report.period_label') }}</label>
+ <input type="date" id="date_to" value="{{ date_to }}" onchange="applyFilter()">
+ </div>
+</div>
+
+{% if logs %}
+<div class="card">
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('expense.date') }}</th><th>{{ t('maint.plate') }}</th><th>{{ t('expense.type') }}</th><th>{{ t('expense.amount') }}({{ t('common.yuan') }})</th><th>{{ t('expense.fuel_quantity') }}</th><th>{{ t('expense.fuel_price') }}</th><th>{{ t('expense.vendor') }}</th><th>{{ t('expense.invoice') }}</th><th>{{ t('expense.reimbursed') }}</th><th>{{ t('common.edit') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in logs %}
+ <tr>
+ <td>{{ r.expense_date }}</td>
+ <td><strong>{{ r.plate_number }}</strong></td>
+ <td><span class="badge badge-{{ r.expense_type }}">{{ tt('extype', r.expense_type) }}</span></td>
+ <td><strong>¥{{ "%.2f"|format(r.amount) }}</strong></td>
+ <td>{{ "%.1f"|format(r.fuel_quantity) if r.fuel_quantity else '-' }}</td>
+ <td>{{ "¥%.2f"|format(r.fuel_unit_price) if r.fuel_unit_price else '-' }}</td>
+ <td class="text-sm">{{ r.vendor or '-' }}</td>
+ <td class="text-sm">{{ r.invoice_number or '-' }}</td>
+ <td>{{ '✅' if r.reimbursed else '❌' }}</td>
+ <td>
+ {% if session.get('user_role') == 'admin' %}
+ <a href="{{ url_for('expense_edit', id=r.id) }}" class="btn btn-outline btn-sm">{{ t('common.edit') }}</a>
+ {% else %}
+ <span style="color:var(--fg-tertiary);font-size:12px">-</span>
+ {% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+ {% for p in range(1, total_pages+1) %}
+ {% if p == page %}
+ <span>{{ p }}</span>
+ {% else %}
+ <a href="?page={{ p }}&vehicle_id={{ vehicle_filter }}&expense_type={{ type_filter }}&date_from={{ date_from }}&date_to={{ date_to }}">{{ p }}</a>
+ {% endif %}
+ {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="card empty-state">
+ <div class="icon">💰</div>
+ <p>{{ t('expense.empty') }}</p>
+ <a href="{{ url_for('expense_add') }}" class="btn btn-accent mt-2">+ {{ t('expense.empty_hint') }}</a>
+</div>
+{% endif %}
+
+<script>
+function applyFilter() {
+ const vid = document.querySelector('[name=vehicle_id]').value;
+ const et = document.querySelector('[name=expense_type]').value;
+ const df = document.getElementById('date_from').value;
+ const dt = document.getElementById('date_to').value;
+ const params = new URLSearchParams();
+ if (vid) params.set('vehicle_id', vid);
+ if (et) params.set('expense_type', et);
+ if (df) params.set('date_from', df);
+ if (dt) params.set('date_to', dt);
+ window.location.href = '{{ url_for("expense_list") }}?' + params.toString();
+}
+</script>
+</div>
+
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% block title %}{{ t('ai.title') }} - {{ t('site.title') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🤖 {{ t('ai.title') }}</h1>
+    <p>{{ t('ai.subtitle') }}</p>
+</div>
+
+<div class="page-body">
+    <!-- Analysis Form -->
+    <div class="card">
+        <div class="card-header">
+            <span>{{ t('ai.select_vehicle') }}</span>
+        </div>
+        <form method="POST" enctype="multipart/form-data" id="analysisForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>{{ t('ai.select_vehicle') }}</label>
+                    <select name="vehicle_id" id="vehicleSelect" required onchange="onVehicleChange()">
+                        <option value="">-- {{ t('ai.select_vehicle') }} --</option>
+                        {% for v in vehicles %}
+                        <option value="{{ v.id }}" {% if vehicle_id|string == v.id|string %}selected{% endif %}>
+                            {{ v.plate_number }} - {{ v.brand_model }} ({{ v.current_mileage|default(0) }}{{ v.mileage_unit or 'km' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>{{ t('ai.upload_manual') }}</label>
+                    <input type="file" name="manual_files" id="manualFiles" multiple accept=".pdf,.txt">
+                    <span style="font-size:12px;color:var(--fg-tertiary);margin-top:4px;display:block">
+                        {{ t('ai.upload_hint') }} (支持多文件上传)
+                    </span>
+                </div>
+            </div>
+
+            {% if existing_manuals and existing_manuals|length > 0 %}
+            <div style="margin:12px 0;padding:10px 14px;background:var(--bg-elevated);border-radius:6px;border:1px solid var(--border)">
+                <span style="color:var(--accent-green)">✓</span>
+                已上传手册:
+                {% for m in existing_manuals[:3] %}
+                <strong>{{ m.original_filename }}</strong>
+                <span style="color:var(--fg-tertiary);font-size:12px;margin-left:8px">{{ m.upload_date[:10] }}</span>
+                {% if loop.index < existing_manuals|length %} · {% endif %}
+                {% endfor %}
+                {% if existing_manuals|length > 3 %}
+                <span style="color:var(--fg-tertiary);font-size:12px">等 {{ existing_manuals|length }} 个文件</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div style="margin-top:16px">
+                <button type="submit" class="btn btn-accent" id="analyzeBtn">🤖 {{ t('ai.analyze') }}</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingCard" class="card" style="margin-top:16px;display:none">
+        <div class="card-header">
+            <span>🤖 AI 正在分析...</span>
+        </div>
+        <div style="padding:24px;text-align:center">
+            <div style="font-size:32px;animation:spin 2s linear infinite;display:inline-block">⚙️</div>
+            <p style="margin-top:12px;color:var(--fg-tertiary)">正在读取维保记录并结合手册内容生成保养建议，请稍候...</p>
+            <p style="font-size:12px;color:var(--fg-tertiary);margin-top:8px" id="loadingTimer">已等待: 0秒</p>
+        </div>
+        <style>
+            @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        </style>
+    </div>
+
+    <!-- AI Analysis Results (AJAX populated) -->
+    <div id="resultCard" class="card" style="margin-top:16px;display:none">
+        <div class="card-header">
+            <span>📋 AI 保养建议</span>
+            <span style="font-size:13px;color:var(--fg-tertiary)" id="resultVehicleId"></span>
+        </div>
+        <div id="resultContent" style="padding:16px;line-height:1.8;white-space:pre-wrap;font-family:system-ui,sans-serif">
+        </div>
+    </div>
+
+    <!-- Error Display (AJAX populated) -->
+    <div id="errorCard" class="card" style="margin-top:16px;display:none;background:var(--bg-error)">
+        <div class="card-header" style="color:var(--accent-red)">
+            ⚠️ 分析失败
+        </div>
+        <div id="errorContent" style="padding:16px">
+        </div>
+    </div>
+
+    <!-- Legacy: server-side rendered results (keep for backward compat) -->
+    {% if ai_analysis %}
+    <div class="card" style="margin-top:16px">
+        <div class="card-header">
+            <span>📋 AI 保养建议</span>
+            {% if vehicle_id %}
+            <span style="font-size:13px;color:var(--fg-tertiary)">
+                车辆 ID: {{ vehicle_id }}
+            </span>
+            {% endif %}
+        </div>
+        <div style="padding:16px;line-height:1.8;white-space:pre-wrap;font-family:system-ui,sans-serif">
+{{ ai_analysis }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if ai_error %}
+    <div class="card" style="margin-top:16px;background:var(--bg-error)">
+        <div class="card-header" style="color:var(--accent-red)">
+            ⚠️ 分析失败
+        </div>
+        <div style="padding:16px">
+{{ ai_error }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Legacy Results table -->
+    {% if results is not none %}
+    <div class="card" style="margin-top:16px">
+        <div class="card-header">
+            <span>📋 {{ t('ai.results_title') }}</span>
+            {% if selected_vehicle %}
+            <span style="font-size:13px;color:var(--fg-tertiary)">
+                {{ selected_vehicle.plate_number }} · {{ t('ai.current_mileage') }}: {{ "{:,.0f}".format(current_mileage) }}{{ selected_vehicle.mileage_unit or 'km' }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if manual_info %}
+        <div style="padding:10px 14px;margin-bottom:12px;background:var(--accent-subtle);border-radius:6px;font-size:13px">
+            {% if manual_info.rules_found > 0 %}
+            📖 {{ t('ai.manual_rules') }} — {{ manual_info.filename }}
+            ({{ manual_info.rules_found }} {{ '条规则' if lang=='zh' else 'rules' }})
+            {% else %}
+            📖 {{ t('ai.no_manual') }}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>{{ t('ai.item') }}</th>
+                        <th>{{ t('ai.interval') }}</th>
+                        <th>{{ t('ai.due_at') }}</th>
+                        <th>{{ t('ai.urgency') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    <tr>
+                        <td style="font-weight:500">{{ r.item }}</td>
+                        <td>{{ r.interval }}</td>
+                        <td>
+                            {% if r.due_mileage > 0 %}
+                            {{ "{:,.0f}".format(r.due_mileage) }}{{ selected_vehicle.mileage_unit or 'km' }}
+                            <span style="font-size:11px;color:var(--fg-tertiary)">
+                                {% if r.km_remaining > 0 %}
+                                ({{ "{:,.0f}".format(r.km_remaining) }}{{ selected_vehicle.mileage_unit or 'km' }} {{ '剩余' if lang=='zh' else 'left' }})
+                                {% else %}
+                                (⚠️ {{ '已超过' if lang=='zh' else 'exceeded' }})
+                                {% endif %}
+                            </span>
+                            {% elif r.source == 'generic' and r.interval_km == 0 %}
+                            {{ '时间周期' if lang=='zh' else 'Time-based' }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.urgency == 'overdue' %}
+                            <span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#f87171;display:inline-block"></span>
+                                {{ t('ai.overdue') }}
+                            </span>
+                            {% elif r.urgency == 'due_soon' %}
+                            <span class="badge" style="background:rgba(245,158,11,0.15);color:#fbbf24">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#fbbf24;display:inline-block"></span>
+                                {{ t('ai.due_soon') }}
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background:rgba(13,156,111,0.15);color:#4ade80">
+                                <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block"></span>
+                                {{ t('ai.upcoming') }}
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display:flex;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            {% set overdue_count = results|selectattr('urgency','equalto','overdue')|list|length %}
+            {% set due_soon_count = results|selectattr('urgency','equalto','due_soon')|list|length %}
+            {% set upcoming_count = results|selectattr('urgency','equalto','upcoming')|list|length %}
+            <div style="text-align:center;flex:1">
+                <div style="font-size:24px;font-weight:700;color:var(--accent-red)">{{ overdue_count }}</div>
+                <div style="font-size:11px;color:var(--fg-tertiary);text-transform:uppercase">{{ t('ai.overdue') }}</div>
+            </div>
+            <div style="text-align:center;flex:1">
+                <div style="font-size:24px;font-weight:700;color:var(--accent-orange)">{{ due_soon_count }}</div>
+                <div style="font-size:11px;color:var(--fg-tertiary);text-transform:uppercase">{{ t('ai.due_soon') }}</div>
+            </div>
+            <div style="text-align:center;flex:1">
+                <div style="font-size:24px;font-weight:700;color:var(--accent-green)">{{ upcoming_count }}</div>
+                <div style="font-size:11px;color:var(--fg-tertiary);text-transform:uppercase">{{ t('ai.upcoming') }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Async AI analysis: start + poll pattern (avoids PA timeout)
+var loadingInterval = null;
+var loadSeconds = 0;
+var pollInterval = null;
+
+document.getElementById('analysisForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    var vid = document.getElementById('vehicleSelect').value;
+    if (!vid) { alert('请先选择车辆'); return; }
+    
+    var csrfToken = document.querySelector('input[name=csrf_token]').value;
+    var manualFiles = document.getElementById('manualFiles').files;
+    
+    // If files selected, use traditional form submit (files need multipart)
+    if (manualFiles.length > 0) {
+        this.submit();
+        return;
+    }
+    
+    // No files: use async start+poll pattern
+    document.getElementById('loadingCard').style.display = 'block';
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errorCard').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('analyzeBtn').textContent = '⏳ 分析中...';
+    
+    loadSeconds = 0;
+    loadingInterval = setInterval(function() {
+        loadSeconds++;
+        document.getElementById('loadingTimer').textContent = '已等待: ' + loadSeconds + '秒';
+    }, 1000);
+    
+    // Step 1: Start the analysis task
+    var formData = new FormData();
+    formData.append('vehicle_id', vid);
+    formData.append('csrf_token', csrfToken);
+    
+    fetch('/api/ai-analysis/start', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    }).then(function(resp) { return resp.json(); }).then(function(data) {
+        if (data.status === 'started' && data.task_id) {
+            // Step 2: Poll for result every 3 seconds
+            var taskId = data.task_id;
+            var maxPolls = 60; // max 3 minutes
+            var pollCount = 0;
+            
+            pollInterval = setInterval(function() {
+                pollCount++;
+                fetch('/api/ai-analysis/poll/' + taskId + '?vehicle_id=' + vid, {
+                    credentials: 'same-origin'
+                }).then(function(r) { return r.json(); }).then(function(result) {
+                    if (result.status === 'ok' && result.analysis) {
+                        clearInterval(pollInterval);
+                        clearInterval(loadingInterval);
+                        document.getElementById('loadingCard').style.display = 'none';
+                        document.getElementById('analyzeBtn').disabled = false;
+                        document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+                        document.getElementById('resultVehicleId').textContent = '车辆 ID: ' + vid;
+                        document.getElementById('resultContent').textContent = result.analysis;
+                        document.getElementById('resultCard').style.display = 'block';
+                    } else if (result.status === 'error') {
+                        clearInterval(pollInterval);
+                        clearInterval(loadingInterval);
+                        document.getElementById('loadingCard').style.display = 'none';
+                        document.getElementById('analyzeBtn').disabled = false;
+                        document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+                        document.getElementById('errorContent').textContent = result.error || '分析失败';
+                        document.getElementById('errorCard').style.display = 'block';
+                    } else if (result.status === 'running') {
+                        // Still running, continue polling
+                    } else {
+                        clearInterval(pollInterval);
+                        clearInterval(loadingInterval);
+                        document.getElementById('loadingCard').style.display = 'none';
+                        document.getElementById('analyzeBtn').disabled = false;
+                        document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+                        document.getElementById('errorContent').textContent = result.error || '未知状态';
+                        document.getElementById('errorCard').style.display = 'block';
+                    }
+                }).catch(function() {
+                    // Network error on poll, retry next interval
+                });
+                
+                if (pollCount >= maxPolls) {
+                    clearInterval(pollInterval);
+                    clearInterval(loadingInterval);
+                    document.getElementById('loadingCard').style.display = 'none';
+                    document.getElementById('analyzeBtn').disabled = false;
+                    document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+                    document.getElementById('errorContent').textContent = '分析超时(3分钟)，后台可能仍在处理。请稍后刷新查看结果。';
+                    document.getElementById('errorCard').style.display = 'block';
+                }
+            }, 3000);
+        } else {
+            clearInterval(loadingInterval);
+            document.getElementById('loadingCard').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = false;
+            document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+            document.getElementById('errorContent').textContent = data.error || '启动分析失败';
+            document.getElementById('errorCard').style.display = 'block';
+        }
+    }).catch(function(err) {
+        clearInterval(loadingInterval);
+        document.getElementById('loadingCard').style.display = 'none';
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtn').textContent = '🤖 {{ t("ai.analyze") }}';
+        document.getElementById('errorContent').textContent = '网络错误: ' + err.message;
+        document.getElementById('errorCard').style.display = 'block';
+    });
+});
+
+function onVehicleChange() {
+    var sel = document.getElementById('vehicleSelect');
+    var vid = sel.value;
+    if (vid) {
+        window.location.href = '{{ url_for("ai_analysis") }}?vehicle_id=' + vid;
+    }
+}
+</script>
+{% endblock %}

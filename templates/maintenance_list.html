@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ t('maint.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>🔧 {{ t('maint.title') }}</h1>
+ <p>{{ t('maint.subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="flex-between mb-2">
+ <span></span>
+ <a href="{{ url_for('maintenance_add') }}" class="btn btn-accent">+ {{ t('maint.add') }}</a>
+</div>
+
+{% if records %}
+<div class="card">
+ <div class="table-wrap">
+ <table>
+ <thead>
+ <tr><th>{{ t('maint.date') }}</th><th>{{ t('maint.plate') }}</th><th>{{ t('maint.type') }}</th><th>{{ t('maint.description') }}</th><th>{{ t('maint.cost') }}</th><th>{{ t('maint.vendor') }}</th><th>{{ t('maint.next_date') }}</th><th>{{ t('maint.next_mileage') }}</th><th>{{ t('common.delete') }}</th></tr>
+ </thead>
+ <tbody>
+ {% for r in records %}
+ <tr>
+ <td>{{ r.maintenance_date }}</td>
+ <td><strong>{{ r.plate_number }}</strong></td>
+ <td>{{ tt('mtype', r.maintenance_type) }}</td>
+ <td class="text-sm">{{ r.description or '-' }}</td>
+ <td>¥{{ "%.2f"|format(r.cost) if r.cost else '-' }}</td>
+ <td class="text-sm">{{ r.vendor or '-' }}</td>
+ <td>{{ r.next_maintenance_date or '-' }}</td>
+ <td>{{ "%.0f"|format(r.next_maintenance_mileage) if r.next_maintenance_mileage else '-' }} {{ r.mileage_unit or 'km' }}</td>
+<td>
+{% if session.get('user_role') == 'admin' %}
+<form method="POST" action="{{ url_for('delete_record', table='maintenance_records', id=r.id) }}" style="display:inline" onsubmit="return confirm('{{ t('common.confirm_delete') }}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="btn btn-danger btn-sm">{{ t('common.delete') }}</button>
+</form>
+{% else %}-{% endif %}
+</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+</div>
+{% else %}
+<div class="card empty-state">
+ <div class="icon">🔧</div>
+ <p>{{ t('maint.empty') }}</p>
+ <a href="{{ url_for('maintenance_add') }}" class="btn btn-accent mt-2">+ {{ t('maint.empty_hint') }}</a>
+</div>
+{% endif %}
+</div>
+
+{% endblock %}

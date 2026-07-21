@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ t('maint.add_title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>{{ t('maint.add_title') }}</h1>
+ <p>{{ t('maint.add_subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="card">
+ <div class="card-header">➕ {{ t('maint.add_title') }}</div>
+ <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <div class="form-grid">
+ <div class="form-group">
+ <label>{{ t('usage.vehicle') }} <span class="required">*</span></label>
+ <select name="vehicle_id" id="vehicle_select" required>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" data-mileage-unit="{{ v.mileage_unit or 'km' }}">{{ v.plate_number }} - {{ v.brand_model }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.date') }} <span class="required">*</span></label>
+ <input type="date" name="maintenance_date" value="{{ today }}" required>
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.type') }} <span class="required">*</span></label>
+ <select name="maintenance_type" required>
+ <option value="routine">{{ tt('mtype', 'routine') }}</option>
+ <option value="repair">{{ tt('mtype', 'repair') }}</option>
+ <option value="tire">{{ tt('mtype', 'tire') }}</option>
+ <option value="battery">{{ tt('mtype', 'battery') }}</option>
+ <option value="inspection">{{ tt('mtype', 'inspection') }}</option>
+ <option value="other">{{ tt('mtype', 'other') }}</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.cost') }}({{ t('common.yuan') }})</label>
+ <input type="number" step="0.01" name="cost" value="0">
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.vendor') }}</label>
+ <input name="vendor" placeholder="{{ t('maint.vendor_placeholder') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.next_date') }}</label>
+ <input type="date" name="next_maintenance_date">
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.next_mileage') }}(<span class="mu-label">km</span>)</label>
+ <input type="number" step="1" name="next_maintenance_mileage" placeholder="{{ t('maint.next_mileage_placeholder') }}">
+ </div>
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.description') }}</label>
+ <textarea name="description" rows="3" placeholder="{{ t('maint.description_placeholder') }}"></textarea>
+ </div>
+ <div class="form-group">
+ <label>{{ t('maint.notes') }}</label>
+ <textarea name="notes" rows="2"></textarea>
+ </div>
+ <div class="btn-group mt-2">
+ <button type="submit" class="btn btn-accent">💾 {{ t('common.save') }}</button>
+ <a href="{{ url_for('maintenance_list') }}" class="btn btn-outline">{{ t('common.cancel') }}</a>
+ </div>
+ </form>
+</div>
+</div>
+
+<script>
+const vehicleSel = document.getElementById('vehicle_select');
+const muLabels = document.querySelectorAll('.mu-label');
+function updateMileageUnit() {
+    if (!vehicleSel) return;
+    const opt = vehicleSel.options[vehicleSel.selectedIndex];
+    const unit = opt ? (opt.dataset.mileageUnit || 'km') : 'km';
+    muLabels.forEach(el => el.textContent = unit);
+}
+if (vehicleSel) {
+    vehicleSel.addEventListener('change', updateMileageUnit);
+    updateMileageUnit();
+}
+</script>
+
+{% endblock %}

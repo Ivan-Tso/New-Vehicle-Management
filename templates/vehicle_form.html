@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ t('vehicles.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>{{ t('vehicles.title') }}</h1>
+ <p>{{ t('vehicles.subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="card">
+ <div class="card-header">{{ '✏️' if vehicle else '➕' }} {{ t('vehicles.add') }}</div>
+ <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <div class="form-grid">
+ <div class="form-group">
+ <label>{{ t('vehicles.plate_number') }} <span class="required">*</span></label>
+ <input name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}" required placeholder="{{ t('vehicles.plate_number') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('vehicles.brand_model') }} <span class="required">*</span></label>
+ <input name="brand_model" value="{{ vehicle.brand_model if vehicle else '' }}" required placeholder="{{ t('vehicles.brand_model') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('vehicles.type') }}</label>
+ <select name="vehicle_type">
+ <option value="sedan" {{ 'selected' if vehicle and vehicle.vehicle_type=='sedan' }}>{{ tt('vtype', 'sedan') }}</option>
+ <option value="suv" {{ 'selected' if vehicle and vehicle.vehicle_type=='suv' }}>{{ tt('vtype', 'suv') }}</option>
+ <option value="van" {{ 'selected' if vehicle and vehicle.vehicle_type=='van' }}>{{ tt('vtype', 'van') }}</option>
+ <option value="truck" {{ 'selected' if vehicle and vehicle.vehicle_type=='truck' }}>{{ tt('vtype', 'truck') }}</option>
+ <option value="other" {{ 'selected' if vehicle and vehicle.vehicle_type=='other' }}>{{ tt('vtype', 'other') }}</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('vehicles.purchase_date') }}</label>
+ <input type="date" name="purchase_date" value="{{ vehicle.purchase_date if vehicle else '' }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('vehicles.current_mileage') if vehicle else t('vehicles.initial_mileage') }} (<span id="mileage-unit-label">{{ vehicle.mileage_unit if vehicle and vehicle.mileage_unit else 'km' }}</span>)</label>
+ <input type="number" step="0.1" name="{{ 'current_mileage' if vehicle else 'initial_mileage' }}" value="{{ vehicle.current_mileage if vehicle else '0' }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('common.mileage_unit') }}</label>
+ <select name="mileage_unit" id="mileage_unit_select">
+ <option value="km" {{ 'selected' if not vehicle or vehicle.mileage_unit != 'mi' }}>{{ t('common.km') }}</option>
+ <option value="mi" {{ 'selected' if vehicle and vehicle.mileage_unit == 'mi' }}>{{ t('common.mi') }}</option>
+ </select>
+ </div>
+ {% if vehicle %}
+ <div class="form-group">
+ <label>{{ t('vehicles.status') }}</label>
+ <select name="status">
+ <option value="active" {{ 'selected' if vehicle.status=='active' }}>{{ tt('status', 'active') }}</option>
+ <option value="inactive" {{ 'selected' if vehicle.status=='inactive' }}>{{ tt('status', 'inactive') }}</option>
+ </select>
+ </div>
+ {% endif %}
+ </div>
+ <div class="form-group">
+ <label>{{ t('vehicles.notes') }}</label>
+ <textarea name="notes" rows="2">{{ vehicle.notes if vehicle and vehicle.notes else '' }}</textarea>
+ </div>
+ <div class="btn-group mt-2">
+ <button type="submit" class="btn btn-accent">💾 {{ t('common.save') }}</button>
+ <a href="{{ url_for('vehicles') }}" class="btn btn-outline">{{ t('common.cancel') }}</a>
+ </div>
+ </form>
+</div>
+</div>
+
+<script>
+// When mileage unit select changes, update the label
+const muSelect = document.getElementById('mileage_unit_select');
+const muLabel = document.getElementById('mileage-unit-label');
+if (muSelect && muLabel) {
+    muSelect.addEventListener('change', function() {
+        muLabel.textContent = this.value;
+    });
+}
+</script>
+
+{% endblock %}

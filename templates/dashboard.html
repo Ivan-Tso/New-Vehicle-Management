@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ t('dashboard.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>{{ t('dashboard.title') }}</h1>
+ <p>{{ t('dashboard.subtitle') }}</p>
+</div>
+
+<div class="page-body">
+ <div class="stats-grid">
+  <div class="stat-card">
+   <div class="stat-value">{{ vehicle_count }}</div>
+   <div class="stat-label">{{ t('dashboard.active_vehicles') }}</div>
+  </div>
+  <div class="stat-card accent">
+   <div class="stat-value">{{ usage_count }}</div>
+   <div class="stat-label">{{ t('dashboard.trips_this_month') }}</div>
+  </div>
+  <div class="stat-card green">
+   <div class="stat-value">{{ "%.1f"|format(usage_distance) }}</div>
+   <div class="stat-label">{{ t('dashboard.distance_this_month') }}</div>
+  </div>
+  <div class="stat-card warning">
+   <div class="stat-value">¥{{ "%.2f"|format(expense_total) }}</div>
+   <div class="stat-label">{{ t('dashboard.expense_this_month') }}</div>
+  </div>
+ </div>
+
+ {% if upcoming %}
+ <div class="card">
+  <div class="card-header">🔔 {{ t('dashboard.upcoming_maintenance') }}</div>
+  <div class="table-wrap">
+   <table>
+    <tr><th>{{ t('maint.plate') }}</th><th>{{ t('maint.type') }}</th><th>{{ t('maint.next_date') }}</th><th>{{ t('maint.remaining_mileage') }}</th><th>{{ t('maint.description') }}</th></tr>
+    {% for r in upcoming %}
+    <tr>
+     <td>{{ r.plate_number }}</td>
+     <td>{{ tt('mtype', r.maintenance_type) }}</td>
+     <td>{{ r.next_maintenance_date or '-' }}</td>
+     <td>
+      {% if r.next_maintenance_mileage and r.current_mileage %}
+      {{ "%.0f"|format(r.next_maintenance_mileage - r.current_mileage) }} {{ r.mileage_unit or 'km' }}
+      {% else %}-{% endif %}
+     </td>
+     <td class="text-sm text-muted">{{ r.description or '' }}</td>
+    </tr>
+    {% endfor %}
+   </table>
+  </div>
+ </div>
+ {% endif %}
+
+ {% if monthly_expenses %}
+ {% set max_expense = monthly_expenses|map(attribute='total')|max|float %}
+ {% if max_expense == 0 %}{% set max_expense = 1 %}{% endif %}
+ <div class="card">
+  <div class="card-header">📊 {{ t('dashboard.monthly_expense_trend') }}</div>
+  <div class="bar-chart">
+   {% for m in monthly_expenses %}
+   <div class="bar-group">
+    <div class="bar-value">¥{{ "%.0f"|format(m.total) }}</div>
+    <div class="bar" style="height:{{ (m.total / max_expense * 160)|int }}px;background:linear-gradient(180deg, #5e6ad2, #8b5cf6);" title="{{ t('extype.fuel') }}{{ t('common.colon') }} ¥{{ '%.0f'|format(m.fuel) }} {{ t('extype.maintenance') }}{{ t('common.colon') }} ¥{{ '%.0f'|format(m.maintenance) }} {{ t('extype.insurance') }}{{ t('common.colon') }} ¥{{ '%.0f'|format(m.insurance) }} {{ t('extype.other') }}{{ t('common.colon') }} ¥{{ '%.0f'|format(m.other) }}"></div>
+    <div class="bar-label">{{ m.month[-2:] }}{{ t('dashboard.month_suffix') }}</div>
+   </div>
+   {% endfor %}
+  </div>
+  <div class="text-sm text-muted text-center mt-2">{{ t('dashboard.hover_chart_hint') }}</div>
+ </div>
+ {% endif %}
+
+ <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;">
+  <div class="card">
+   <div class="card-header">📋 {{ t('dashboard.recent_usage') }} <a href="{{ url_for('usage_add') }}" class="btn btn-accent btn-sm">+ {{ t('dashboard.register') }}</a></div>
+   {% if recent_usage %}
+   <div class="table-wrap">
+    <table>
+     <tr><th>{{ t('usage.date') }}</th><th>{{ t('maint.plate') }}</th><th>{{ t('usage.driver') }}</th><th>{{ t('usage.purpose') }}</th><th>{{ t('usage.distance') }}</th></tr>
+     {% for r in recent_usage[:8] %}
+     <tr>
+      <td>{{ r.usage_date }}</td>
+      <td>{{ r.plate_number }}</td>
+      <td>{{ r.driver_name }}</td>
+      <td class="text-sm">{{ r.purpose[:15] }}{{ '...' if r.purpose|length > 15 }}</td>
+      <td>{{ "%.1f"|format(r.distance) if r.distance else '-' }} {{ r.mileage_unit or 'km' }}</td>
+     </tr>
+     {% endfor %}
+    </table>
+   </div>
+   {% else %}
+   <div class="empty-state"><div class="icon">📋</div>{{ t('dashboard.empty_usage') }}</div>
+   {% endif %}
+  </div>
+
+  <div class="card">
+   <div class="card-header">💰 {{ t('dashboard.recent_expenses') }} <a href="{{ url_for('expense_add') }}" class="btn btn-accent btn-sm">+ {{ t('dashboard.register') }}</a></div>
+   {% if recent_expenses %}
+   <div class="table-wrap">
+    <table>
+     <tr><th>{{ t('expense.date') }}</th><th>{{ t('maint.plate') }}</th><th>{{ t('expense.type') }}</th><th>{{ t('expense.amount') }}</th></tr>
+     {% for r in recent_expenses[:8] %}
+     <tr>
+      <td>{{ r.expense_date }}</td>
+      <td>{{ r.plate_number }}</td>
+      <td><span class="badge badge-{{ r.expense_type }}">{{ tt('extype', r.expense_type) }}</span></td>
+      <td>¥{{ "%.2f"|format(r.amount) }}</td>
+     </tr>
+     {% endfor %}
+    </table>
+   </div>
+   {% else %}
+   <div class="empty-state"><div class="icon">💰</div>{{ t('dashboard.empty_expense') }}</div>
+   {% endif %}
+  </div>
+ </div>
+</div>
+
+{% endblock %}

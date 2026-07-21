@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="{{ lang or 'zh-CN' }}">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="theme-color" content="#34a853">
+ <title>{{ t('mobile.save_success') }} - {{ t('site.brand') }}</title>
+ <style>
+ * { margin:0; padding:0; box-sizing:border-box; }
+ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+ background:#f5f5f5; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+ .success-card { text-align:center; padding:40px 30px; background:white; border-radius:20px;
+ margin:20px; box-shadow:0 4px 20px rgba(0,0,0,0.08); width:90%; max-width:360px; }
+ .success-icon { font-size:60px; margin-bottom:16px; }
+ .success-msg { font-size:20px; font-weight:700; color:#333; margin-bottom:8px; }
+ .success-sub { font-size:14px; color:#888; margin-bottom:24px; }
+ .action-btns { display:flex; flex-direction:column; gap:10px; }
+ .action-btns a { display:block; padding:14px; border-radius:12px; text-decoration:none;
+ font-size:16px; font-weight:600; text-align:center; }
+ .btn-again { background:#1a73e8; color:white; }
+ .btn-home { background:white; color:#1a73e8; border:1.5px solid #1a73e8; }
+ </style>
+</head>
+<body>
+ <div class="success-card">
+ <div class="success-icon">✅</div>
+ <div class="success-msg">{{ message }}</div>
+ <div class="success-sub">{{ t('mobile.record_saved_to_db') }}</div>
+ <div class="action-btns">
+ {% if action == 'usage' %}
+ <a href="/mobile/usage" class="action-btns a btn-again">📋 {{ t('mobile.continue_usage') }}</a>
+ {% else %}
+ <a href="/mobile/expense" class="action-btns a btn-again">💰 {{ t('mobile.continue_expense') }}</a>
+ {% endif %}
+ <a href="/mobile" class="action-btns a btn-home">🏠 {{ t('mobile.return_home') }}</a>
+ </div>
+ </div>
+</body>
+</html>

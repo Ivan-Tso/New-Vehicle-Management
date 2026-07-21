@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ t('usage.title') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>{{ t('usage.title') }}</h1>
+ <p>{{ t('usage.subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="card">
+ <div class="card-header">{{ '✏️' if log else '➕' }} {{ t('usage.add') }}</div>
+ <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <div class="form-grid">
+ <div class="form-group">
+ <label>{{ t('usage.vehicle') }} <span class="required">*</span></label>
+ <select name="vehicle_id" id="vehicle_select" required>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" data-mileage-unit="{{ v.mileage_unit or 'km' }}" {{ 'selected' if log and log.vehicle_id==v.id }}>{{ v.plate_number }} - {{ v.brand_model }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.date') }} <span class="required">*</span></label>
+ <input type="date" name="usage_date" value="{{ log.usage_date if log else today }}" required>
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.driver') }} <span class="required">*</span></label>
+ <input name="driver_name" value="{{ log.driver_name if log else '' }}" required placeholder="{{ t('usage.driver') }}">
+ </div>
+ <div class="form-group">
+ <div class="form-group" style="grid-column:1/-1">
+ <label>{{ t('usage.purpose') }} <span class="required">*</span></label>
+ <input name="purpose" value="{{ log.purpose if log else '' }}" required placeholder="{{ t('usage.purpose') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.destination') }}</label>
+ <input name="destination" value="{{ log.destination if log else '' }}" placeholder="{{ t('usage.destination') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.passengers') }}</label>
+ <input type="number" name="passengers" value="{{ log.passengers if log else '0' }}" min="0">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.start_mileage') }} (<span class="mu-label">km</span>)</label>
+ <input type="number" step="0.1" name="start_mileage" value="{{ log.start_mileage if log and log.start_mileage else '' }}" placeholder="{{ t('usage.start_mileage') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.end_mileage') }} (<span class="mu-label">km</span>)</label>
+ <input type="number" step="0.1" name="end_mileage" value="{{ log.end_mileage if log and log.end_mileage else '' }}" placeholder="{{ t('usage.end_mileage') }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.start_time') }}</label>
+ <input type="time" name="start_time" value="{{ log.start_time if log else '' }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.end_time') }}</label>
+ <input type="time" name="end_time" value="{{ log.end_time if log else '' }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.weather') }}</label>
+ <select name="weather">
+ <option value="">--</option>
+ <option value="sunny" {{ 'selected' if log and log.weather=='sunny' }}>{{ tt('weather', 'sunny') }}</option>
+ <option value="cloudy" {{ 'selected' if log and log.weather=='cloudy' }}>{{ tt('weather', 'cloudy') }}</option>
+ <option value="rainy" {{ 'selected' if log and log.weather=='rainy' }}>{{ tt('weather', 'rainy') }}</option>
+ <option value="snowy" {{ 'selected' if log and log.weather=='snowy' }}>{{ tt('weather', 'snowy') }}</option>
+ <option value="foggy" {{ 'selected' if log and log.weather=='foggy' }}>{{ tt('weather', 'foggy') }}</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.road_condition') }}</label>
+ <select name="road_condition">
+ <option value="normal" {{ 'selected' if log and log.road_condition=='normal' }}>{{ tt('road', 'normal') }}</option>
+ <option value="congested" {{ 'selected' if log and log.road_condition=='congested' }}>{{ tt('road', 'congested') }}</option>
+ <option value="slippery" {{ 'selected' if log and log.road_condition=='slippery' }}>{{ tt('road', 'slippery') }}</option>
+ </select>
+ </div>
+ </div>
+ <div class="form-group">
+ <label>{{ t('usage.notes') }}</label>
+ <textarea name="notes" rows="2">{{ log.notes if log and log.notes else '' }}</textarea>
+ </div>
+ <div class="btn-group mt-2">
+ <button type="submit" class="btn btn-accent">💾 {{ t('common.save') }}</button>
+ <a href="{{ url_for('usage_list') }}" class="btn btn-outline">{{ t('common.cancel') }}</a>
+ </div>
+ </form>
+</div>
+
+<script>
+// Auto-calculate distance & dynamic mileage unit
+const startM = document.querySelector('[name=start_mileage]');
+const endM = document.querySelector('[name=end_mileage]');
+const vehicleSel = document.getElementById('vehicle_select');
+const muLabels = document.querySelectorAll('.mu-label');
+
+function updateMileageUnit() {
+    if (!vehicleSel) return;
+    const opt = vehicleSel.options[vehicleSel.selectedIndex];
+    const unit = opt ? (opt.dataset.mileageUnit || 'km') : 'km';
+    muLabels.forEach(el => el.textContent = unit);
+}
+
+function calcDistance() {
+    const s = parseFloat(startM.value);
+    const e = parseFloat(endM.value);
+    if (s && e && e > s) {
+        // Could show a hint
+    }
+}
+
+if (vehicleSel) {
+    vehicleSel.addEventListener('change', updateMileageUnit);
+    updateMileageUnit(); // init on load
+}
+startM.addEventListener('change', calcDistance);
+endM.addEventListener('change', calcDistance);
+</script>
+</div>
+
+{% endblock %}

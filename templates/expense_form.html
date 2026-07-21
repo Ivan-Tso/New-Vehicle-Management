@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ t('expense.add_title') if not log else t('common.edit') }} - {{ t('site.title') }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+ <h1>{{ t('common.edit') if log else t('expense.add_title') }}</h1>
+ <p>{{ t('expense.add_subtitle') }}</p>
+</div>
+<div class="page-body">
+<div class="card">
+ <div class="card-header">{{ '✏️ ' + t('common.edit') if log else '➕ ' + t('expense.add_title') }}</div>
+ <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+ <div class="form-grid">
+ <div class="form-group">
+ <label>{{ t('usage.vehicle') }} <span class="required">*</span></label>
+ <select name="vehicle_id" id="vehicle_select" required>
+ {% for v in vehicles %}
+ <option value="{{ v.id }}" data-mileage-unit="{{ v.mileage_unit or 'km' }}" {{ 'selected' if log and log.vehicle_id==v.id }}>{{ v.plate_number }} - {{ v.brand_model }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.date') }} <span class="required">*</span></label>
+ <input type="date" name="expense_date" value="{{ log.expense_date if log else today }}" required>
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.type') }} <span class="required">*</span></label>
+ <select name="expense_type" required id="expense_type" onchange="toggleFuelFields()">
+ <option value="fuel" {{ 'selected' if log and log.expense_type=='fuel' }}>{{ tt('extype','fuel') }}</option>
+ <option value="maintenance" {{ 'selected' if log and log.expense_type=='maintenance' }}>{{ tt('extype','maintenance') }}</option>
+ <option value="insurance" {{ 'selected' if log and log.expense_type=='insurance' }}>{{ tt('extype','insurance') }}</option>
+ <option value="toll" {{ 'selected' if log and log.expense_type=='toll' }}>{{ tt('extype','toll') }}</option>
+ <option value="parking" {{ 'selected' if log and log.expense_type=='parking' }}>{{ tt('extype','parking') }}</option>
+ <option value="other" {{ 'selected' if log and log.expense_type=='other' }}>{{ tt('extype','other') }}</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.amount') }}({{ t('common.yuan') }}) <span class="required">*</span></label>
+ <input type="number" step="0.01" name="amount" value="{{ log.amount if log else '' }}" required placeholder="0.00">
+ </div>
+ <div class="form-group fuel-field">
+ <label>{{ t('expense.fuel_quantity') }}</label>
+ <input type="number" step="0.01" name="fuel_quantity" value="{{ log.fuel_quantity if log and log.fuel_quantity else '' }}" placeholder="45.5">
+ </div>
+ <div class="form-group fuel-field">
+ <label>{{ t('expense.fuel_price') }}</label>
+ <input type="number" step="0.01" name="fuel_unit_price" value="{{ log.fuel_unit_price if log and log.fuel_unit_price else '' }}" placeholder="7.85">
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.mileage') }}(<span class="mu-label">km</span>)</label>
+ <input type="number" step="0.1" name="mileage_at_expense" value="{{ log.mileage_at_expense if log and log.mileage_at_expense else '' }}">
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.vendor') }}</label>
+ <input name="vendor" value="{{ log.vendor if log else '' }}" placeholder="">
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.invoice') }}</label>
+ <input name="invoice_number" value="{{ log.invoice_number if log else '' }}" placeholder="">
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.payment') }}</label>
+ <select name="payment_method">
+ <option value="cash" {{ 'selected' if log and log.payment_method=='cash' }}>{{ t('pay.cash') }}</option>
+ <option value="card" {{ 'selected' if log and log.payment_method=='card' }}>{{ t('pay.card') }}</option>
+ <option value="transfer" {{ 'selected' if log and log.payment_method=='transfer' }}>{{ t('pay.transfer') }}</option>
+ <option value="personal" {{ 'selected' if log and log.payment_method=='personal' }}>{{ t('pay.alipay') }}</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.reimbursed') }}</label>
+ <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-top:6px">
+ <input type="checkbox" name="reimbursed" value="1" {{ 'checked' if log and log.reimbursed }}>
+ <span>{{ t('common.yuan') }}</span>
+ </label>
+ </div>
+ </div>
+ <div class="form-group">
+ <label>{{ t('expense.notes') }}</label>
+ <textarea name="notes" rows="2">{{ log.notes if log and log.notes else '' }}</textarea>
+ </div>
+ <div class="btn-group mt-2">
+ <button type="submit" class="btn btn-accent">💾 {{ t('common.save') }}</button>
+ <a href="{{ url_for('expense_list') }}" class="btn btn-outline">{{ t('common.cancel') }}</a>
+ </div>
+ </form>
+</div>
+
+<script>
+function toggleFuelFields() {
+    const type = document.getElementById('expense_type').value;
+    document.querySelectorAll('.fuel-field').forEach(el => {
+        el.style.display = type === 'fuel' ? '' : 'none';
+    });
+}
+// Dynamic mileage unit
+const vehicleSel = document.getElementById('vehicle_select');
+const muLabels = document.querySelectorAll('.mu-label');
+function updateMileageUnit() {
+    if (!vehicleSel) return;
+    const opt = vehicleSel.options[vehicleSel.selectedIndex];
+    const unit = opt ? (opt.dataset.mileageUnit || 'km') : 'km';
+    muLabels.forEach(el => el.textContent = unit);
+}
+if (vehicleSel) {
+    vehicleSel.addEventListener('change', updateMileageUnit);
+    updateMileageUnit();
+}
+toggleFuelFields();
+</script>
+</div>
+
+{% endblock %}
