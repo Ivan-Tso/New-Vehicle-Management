@@ -38,7 +38,7 @@ else:
 
 # Session Cookie Security
 app.config['SESSION_COOKIE_HTTPONLY'] = True    # JS cannot read session cookie (anti-XSS)
-app.config['SESSION_COOKIE_SECURE'] = False      # 本地测试时禁用Secure
+app.config['SESSION_COOKIE_SECURE'] = True       # Only send cookie over HTTPS (Render)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'   # Block cross-site POST (anti-CSRF)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)  # Auto-logout after 8h
 

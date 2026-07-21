@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: vehicle-management
+    runtime: python
+    repo: https://github.com/Ivan-Tso/New-Vehicle-Management
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+    healthCheckPath: /login
+    autoDeploy: true
